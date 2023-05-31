@@ -1,0 +1,221 @@
+/*
+ * Copyright (c) 2018-2020 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * DIP ORG_NAME->PCB_NAME   nRF9160 NAME
+ * 2   GPIO0     SW1        P0.26   button1
+ * 3   GPIO1     SW0        P0.27   button0
+ * 4   I2C_SDA   I2C_SDA    P0.29   i2c2
+ * 5   I2C_SCL   I2C_SCL    P0.30   i2c2
+ * 6   LED       NC         P0.31   
+ * 8   SPI_MOSI  WS_START   P0.01   led2
+ * 9   SPI_MISO  WS_UART_RX P0.02   uart0
+ * 10  SPI_CLK   NC         P0.03   
+ * 11  SPI_NSS   WS_POWER   P0.04   led3
+ * 19  WAKE_OUT  BAT_ADV    P0.20   adc
+ * 20  WAKE_IN   BAT_ADEN   P0.21   led4
+ * 21  UART_RX   UART_RX    P0.22   *****
+ * 22  UART_TX   UART_TX    P0.23   uart0
+ * 23  UART_CTS  SW2        P0.24   button2
+ * 24  UART_RTS  SW3        P0.25   button3
+ *     ST_A_LED             P0.06   led0
+ *     ST_B_LED             P0.07   led1
+ */
+
+#include "scm-ltem1nrf_nrf9160_common-pinctrl.dtsi"
+
+/ {
+	model = "Nordic nRF9160 DK NRF9160";
+	compatible = "nordic,nrf9160-dk-nrf9160";
+
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+		zephyr,uart-mcumgr = &uart0;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led0: led_0 {
+			gpios = <&gpio0 6 0>;
+			label = "Green LED 3";
+		};
+		led1: led_1 {
+			gpios = <&gpio0 7 0>;
+			label = "Green LED 4";
+		};
+		led2: led_2 {
+			gpios = <&gpio0 1 0>;
+			label = "WS_START";
+		};
+		led3: led_3 {
+			gpios = <&gpio0 4 0>;
+			label = "WS_POWER";
+		};
+		led4: led_4 {
+			gpios = <&gpio0 21 0>;
+			label = "BAT_ADEN";
+		};
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+		button0: button_0 {
+			gpios = <&gpio0 27 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "SW0";
+		};
+
+		button1: button_1 {
+			gpios = <&gpio0 26 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "SW1";
+		};
+
+		button2: button_2 {
+			gpios = <&gpio0 24 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "SW2";
+		};
+
+		button3: button_3 {
+			gpios = <&gpio0 25 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "SW3";
+		};
+	};
+
+	/* These aliases are provided for compatibility with samples */
+	aliases {
+		led0 = &led0;
+		led1 = &led1;
+		led2 = &led2;
+		led3 = &led3;
+		led4 = &led4;
+		sw0 = &button0;
+		sw1 = &button1;
+		sw2 = &button2;
+		sw3 = &button3;
+		watchdog0 = &wdt0;
+	};
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+ 
+	status = "okay";
+	channel@0 {
+		reg = <7>;
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,vref-mv = <600>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <3>;
+		zephyr,input-positive = <NRF_SAADC_AIN7>;
+	};
+};
+
+&gpiote {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+	current-speed = <9600>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-1 = <&uart0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+/*
+&uart1 {
+	status = "okay";
+	current-speed = <9600>;
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-1 = <&uart1_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+*/
+
+&i2c2 {
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	pinctrl-0 = <&i2c2_default>;
+	pinctrl-1 = <&i2c2_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&timer0 {
+	status = "okay";
+};
+
+&timer1 {
+	status = "okay";
+};
+
+&timer2 {
+	status = "okay";
+};
+
+&flash0 {
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x10000>;
+		};
+		slot0_partition: partition@10000 {
+			label = "image-0";
+		};
+		slot0_ns_partition: partition@50000 {
+			label = "image-0-nonsecure";
+		};
+		slot1_partition: partition@80000 {
+			label = "image-1";
+		};
+		slot1_ns_partition: partition@c0000 {
+			label = "image-1-nonsecure";
+		};
+		scratch_partition: partition@f0000 {
+			label = "image-scratch";
+			reg = <0x000f0000 0xa000>;
+		};
+		storage_partition: partition@fa000 {
+			label = "storage";
+			reg = <0x000fa000 0x00006000>;
+		};
+	};
+};
+
+/ {
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		sram0_s: image_s@20000000 {
+			/* Secure image memory */
+		};
+
+		sram0_modem: image_modem@20016000 {
+			/* Modem (shared) memory */
+		};
+
+		sram0_ns: image_ns@20020000 {
+			/* Non-Secure image memory */
+		};
+	};
+};
+
+/* Include partition configuration file */
+#include "scm-ltem1nrf_nrf9160_partition_conf.dts"

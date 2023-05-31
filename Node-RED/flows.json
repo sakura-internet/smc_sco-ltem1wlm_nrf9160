@@ -1,0 +1,290 @@
+[
+    {
+        "id": "24fb41a569de88d1",
+        "type": "tab",
+        "label": "フロー 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "1839e84d235fdfd0",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "TEST",
+        "name": "influxdb(TEST)",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "9d3f315fe3e50d17",
+        "type": "ui_tab",
+        "name": "石狩水位計ダッシュボード",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "bdd1bf086c06e75f",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "Arial,Arial,Helvetica,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "Arial,Arial,Helvetica,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED ダッシュボード",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "YYYY/MM/DD",
+            "sizes": {
+                "sx": 400,
+                "sy": 30,
+                "gx": 0,
+                "gy": 0,
+                "cx": 0,
+                "cy": 5,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "4a3e41b1adb6c4ab",
+        "type": "ui_group",
+        "name": "デフォルト",
+        "tab": "9d3f315fe3e50d17",
+        "order": 2,
+        "disp": false,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "1d087e1e9f53b1da",
+        "type": "udp in",
+        "z": "24fb41a569de88d1",
+        "name": "UDP受信",
+        "iface": "",
+        "port": "1234",
+        "ipv": "udp4",
+        "multicast": "false",
+        "group": "",
+        "datatype": "utf8",
+        "x": 100,
+        "y": 360,
+        "wires": [
+            [
+                "f7ecae01942de1c8",
+                "e80aa07540388bda",
+                "17a95e49d78e9fea"
+            ]
+        ]
+    },
+    {
+        "id": "f7ecae01942de1c8",
+        "type": "debug",
+        "z": "24fb41a569de88d1",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 320,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "487f5e5b13b419c0",
+        "type": "debug",
+        "z": "24fb41a569de88d1",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "e80aa07540388bda",
+        "type": "csv",
+        "z": "24fb41a569de88d1",
+        "name": "UDP受信文字列分割",
+        "sep": ",",
+        "hdrin": "",
+        "hdrout": "none",
+        "multi": "one",
+        "ret": "\\n",
+        "temp": "",
+        "skip": "0",
+        "strings": false,
+        "include_empty_strings": true,
+        "include_null_values": true,
+        "x": 360,
+        "y": 360,
+        "wires": [
+            [
+                "487f5e5b13b419c0",
+                "43aaa048db2f9967"
+            ]
+        ]
+    },
+    {
+        "id": "17a95e49d78e9fea",
+        "type": "file",
+        "z": "24fb41a569de88d1",
+        "name": "udplog",
+        "filename": "udplog",
+        "filenameType": "str",
+        "appendNewline": true,
+        "createDir": true,
+        "overwriteFile": "false",
+        "encoding": "none",
+        "x": 310,
+        "y": 240,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "abbd691b43317a66",
+        "type": "influxdb out",
+        "z": "24fb41a569de88d1",
+        "influxdb": "1839e84d235fdfd0",
+        "name": "influxdb(TEST)",
+        "measurement": "TEST",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1020,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "c5f6f7f8626ef664",
+        "type": "debug",
+        "z": "24fb41a569de88d1",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1000,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "43aaa048db2f9967",
+        "type": "function",
+        "z": "24fb41a569de88d1",
+        "name": "数値計算とデータベース格納データ作成",
+        "func": "//水位換算用パラメータ\n//全高はセンサー面から川底までの高さの数値\n//現場で測定した実測水位とセンサー値を記述する。単位は[mm]\n//水位 = 全高 - センサー値\n\n//1号機：\nconst WaterLevel_No1 = 20;       //現場実測水位を記入する\nconst SensorDistance_No1 = 2540; //現場実測センサー値を記入する\nconst ICCID_No1 = \"8981040000001220198\";\n\n//2号機：\nconst WaterLevel_No2 = 100;      //現場実測水位を記入する\nconst SensorDistance_No2 = 2710; //現場実測センサー値を記入する\nconst ICCID_No2 = \"8981040000001221519\";\n\n//3号機：\nconst WaterLevel_No3 = 140;      //現場実測水位を記入する\nconst SensorDistance_No3 = 1462; //現場実測センサー値を記入する\nconst ICCID_No3 = \"8981040000001215297\";\n\n//4号機：\nconst WaterLevel_No4 = 800;      //現場実測水位を記入する\nconst SensorDistance_No4 = 5160; //現場実測センサー値を記入する\nconst ICCID_No4 = \"8981040000001220107\";\n\n//5号機：\nconst WaterLevel_No5 = 180;      //現場実測水位を記入する\nconst SensorDistance_No5 = 3020; //現場実測センサー値を記入する\nconst ICCID_No5 = \"8981040000001221717\";\n\n//6号機：\nconst WaterLevel_No6 = 500;      //現場実測水位を記入する\nconst SensorDistance_No6 = 2113; //現場実測センサー値を記入する\nconst ICCID_No6 = \"8981040000001215198\";\n\n//7号機：\nconst WaterLevel_No7 = 40;       //現場実測水位を記入する\nconst SensorDistance_No7 = 1516; //現場実測センサー値を記入する\nconst ICCID_No7 = \"8981040000001216980\";\n\nconst AllHeight_No1 = WaterLevel_No1 + SensorDistance_No1;\nconst AllHeight_No2 = WaterLevel_No2 + SensorDistance_No2;\nconst AllHeight_No3 = WaterLevel_No3 + SensorDistance_No3;\nconst AllHeight_No4 = WaterLevel_No4 + SensorDistance_No4;\nconst AllHeight_No5 = WaterLevel_No5 + SensorDistance_No5;\nconst AllHeight_No6 = WaterLevel_No6 + SensorDistance_No6;\nconst AllHeight_No7 = WaterLevel_No7 + SensorDistance_No7;\n\n//受信データの格納\nlet SD_Date       = msg.payload.col1;                //送信時点の日付\nlet SD_Time       = msg.payload.col2;                //送信時点の時刻\nlet SD_ICCID      = msg.payload.col3;                //SIMのICCID\nlet SD_BATT       = parseInt(msg.payload.col4, 10);  //バッテリ電圧\nlet SD_TEMP       = parseFloat(msg.payload.col5);    //筐体温度\nlet SD_Distance   = new Array();                     //超音波センサー値の配列定義\nSD_Distance[0]    = parseInt(msg.payload.col6,  10); //超音波センサーの値1個目\nSD_Distance[1]    = parseInt(msg.payload.col7,  10); //超音波センサーの値2個目\nSD_Distance[2]    = parseInt(msg.payload.col8,  10); //超音波センサーの値3個目\nSD_Distance[3]    = parseInt(msg.payload.col9,  10); //超音波センサーの値4個目\nSD_Distance[4]    = parseInt(msg.payload.col10, 10); //超音波センサーの値5個目\nlet SD_SendCount  = parseInt(msg.payload.col11, 10); //連続送信回数\nlet SD_BAND       = parseInt(msg.payload.col12, 10); //LTEのバンド番号\nlet SD_PLMN       = parseInt(msg.payload.col13, 10); //LTEのPLMN（キャリア番号）\nlet SD_TAC        = parseInt(msg.payload.col14, 16); //LTEのTACコード\nlet SD_CELL_ID    = parseInt(msg.payload.col15, 16); //LTEのセルID\nlet SD_ES         = parseInt(msg.payload.col16, 10); //LTEのエネルギー効率\nlet SD_RSRP       = parseInt(msg.payload.col17, 10); //LTEの信号受信電力\nlet SD_RSRQ       = parseInt(msg.payload.col18, 10); //LTEの信号受信品質\nlet SD_SNR        = parseInt(msg.payload.col19, 10); //LTEの信号ノイズ比\nlet SD_SensorType = parseInt(msg.payload.col20, 10); //超音波センサーの最大測定距離(0:5m/1:10m)\nlet SD_Retry      = parseInt(msg.payload.col21, 10); //超音波センサーの測定リトライ回数\n\n//数値の変換処理\nSD_RSRP = SD_RSRP - 140;      //信号受信電力をdBmに変換\nSD_RSRQ = SD_RSRQ / 2 - 19.5; //受信信号品質をdBmに変換\nSD_SNR = SD_SNR - 24;         //信号ノイズ比をdBに変換\nSD_TEMP = Math.round(SD_TEMP * 10) / 10; //温度を小数点1位で四捨五入\n\n//超音波測定値の平均処理\n//超音波センサーの測定エラー値(-1)を除外する\n//測定エラーを除いた数値から中央値を求める\n//中央値から特定の距離以上離れた値を除いて平均値を求める\n//超音波センサーの測定値が全てエラー値(-1)だった場合は平均値にはNULLが格納される\nlet reliable_distance_to_water = new Array(); //計算に使えるセンサー値\nlet reliable_distances_count = 0;             //計算に使えるセンサー値の数\nlet reliable_avg_distance_to_water = 0;       //計算後の平均値\n\nfor (let i = 0; i < 5; i++) {\n    // 5mセンサーの値を評価 -1mmと300mmの場合はエラーとする\n    if (SD_SensorType == 0 && SD_Distance[i] > 300) {\n        reliable_distance_to_water[reliable_distances_count] = SD_Distance[i];\n        reliable_distances_count++;\n    }\n    // 10mセンサーの値を評価 -1mmと500mmの場合はエラーとする\n    else if (SD_SensorType == 1 && SD_Distance[i] > 500) {\n        reliable_distance_to_water[reliable_distances_count] = SD_Distance[i];\n        reliable_distances_count++;\n    }\n}\n\nfor (let i = 0; i < reliable_distances_count; i++) {\n    reliable_avg_distance_to_water += reliable_distance_to_water[i];\n}\n\nif (reliable_distance_to_water.length == 0) {\n    console.log(\"reliable_distance_to_water is empty\");\n    reliable_avg_distance_to_water = null;\n} else {\n    // 中央値を求める\n    reliable_distance_to_water.sort(function (a, b) { return a - b; });\n    var mid = Math.floor(reliable_distances_count / 2);\n    var median_val = reliable_distances_count % 2 ? reliable_distance_to_water[mid] : (reliable_distance_to_water[mid - 1] + reliable_distance_to_water[mid]) / 2;\n\n    // 中央値から60mm以上離れた値を除外して平均値を求める\n    var valid_distances = [];\n    var sum = 0;\n    for (var i = 0; i < reliable_distances_count; i++) {\n        if (Math.abs(reliable_distance_to_water[i] - median_val) < 60) {\n            valid_distances.push(reliable_distance_to_water[i]);\n            sum += reliable_distance_to_water[i];\n        } else {\n            node.warn(\"除外された値：\" + reliable_distance_to_water[i]);\n        }\n    }\n    reliable_avg_distance_to_water = sum / valid_distances.length;\n    reliable_avg_distance_to_water = Math.round(reliable_avg_distance_to_water);\n\n    //node.warn(\"中央値：\" + median_val);\n    //node.warn(\"除外されなかった値：\" + valid_distances);\n    //node.warn(\"平均値：\" + reliable_avg_distance_to_water);\n}\n\n//水位計算 ICCIDを判定して水位を計算する\n//水位 = 全高 - センサー値\nlet WaterLevel = 0;\nswitch (SD_ICCID) {\n    case ICCID_No1: //1号機：浜益支所前\n        WaterLevel = AllHeight_No1 - reliable_avg_distance_to_water;\n        if (WaterLevel < -100 || WaterLevel > 3000) {\n            WaterLevel = null;\n        }\n        break;\n    case ICCID_No2: //2号機：\n        WaterLevel = AllHeight_No2 - reliable_avg_distance_to_water;\n        if (WaterLevel < -100 || WaterLevel > 3000) {\n            WaterLevel = null;\n        }\n        break;\n    case ICCID_No3: //3号機：\n        WaterLevel = AllHeight_No3 - reliable_avg_distance_to_water;\n        if (WaterLevel < -100 || WaterLevel > 3000) {\n            WaterLevel = null;\n        }\n        break;\n    case ICCID_No4: //4号機：\n        WaterLevel = AllHeight_No4 - reliable_avg_distance_to_water;\n        if (WaterLevel < -100 || WaterLevel > 6000) {\n            WaterLevel = null;\n        }\n        break;\n    case ICCID_No5: //5号機：\n        WaterLevel = AllHeight_No5 - reliable_avg_distance_to_water;\n        if (WaterLevel < -100 || WaterLevel > 4000) {\n            WaterLevel = null;\n        }\n        break;\n    case ICCID_No6: //6号機：\n        WaterLevel = AllHeight_No6 - reliable_avg_distance_to_water;\n        if (WaterLevel < -100 || WaterLevel > 3000) {\n            WaterLevel = null;\n        }\n        break;\n    case ICCID_No7: //7号機：\n        WaterLevel = AllHeight_No7 - reliable_avg_distance_to_water;\n        if (WaterLevel < -100 || WaterLevel > 3000) {\n            WaterLevel = null;\n        }\n        break;\n    default:\n        WaterLevel = null;\n        break;\n}\n\n//Node-REDがデータを受信した時刻を取得する。\nlet date = new Date();\nlet year = date.getFullYear();                      //年\nlet month = (\"0\" + (date.getMonth() + 1)).slice(-2);//月\nlet day = (\"0\" + (date.getDate())).slice(-2);       //日\nlet hour = (\"0\" + (date.getHours())).slice(-2);     //時\nlet minute = (\"0\" + (date.getMinutes())).slice(-2); //分\nlet second = (\"0\" + (date.getSeconds())).slice(-2); //秒\n\n//時系列データベースへの格納データを作成\nmsg.payload = {\n    \"ReceivedDate\": year + \"/\" + month + \"/\" + day + \" \" + hour + \":\" + minute + \":\" + second,\n    \"DATE\":       SD_Date,        //送信時点の日付\n    \"TIME\":       SD_Time,        //送信時点の時刻\n    \"ICCID\":      SD_ICCID,       //SIMのICCID\n    \"BATT\":       SD_BATT,        //バッテリ電圧\n    \"TEMP\":       SD_TEMP,        //筐体温度\n    \"Distance1\":  SD_Distance[0], //超音波センサーの測定生値\n    \"Distance2\":  SD_Distance[1], //超音波センサーの測定生値\n    \"Distance3\":  SD_Distance[2], //超音波センサーの測定生値\n    \"Distance4\":  SD_Distance[3], //超音波センサーの測定生値\n    \"Distance5\":  SD_Distance[4], //超音波センサーの測定生値\n    \"Count\":      SD_SendCount,   //連続送信回数\n    \"Band\":       SD_BAND,        //LTEのバンド番号\n    \"Plmn\":       SD_PLMN,        //LTEのPLMN（キャリア番号）\n    \"Tac\":        SD_TAC,         //LTEのTACコード\n    \"Cell_ID\":    SD_CELL_ID,     //LTEのセルID\n    \"ES\":         SD_ES,          //LTEのエネルギー効率\n    \"RSRP\":       SD_RSRP,        //LTEの信号受信電力\n    \"RSRQ\":       SD_RSRQ,        //LTEの信号受信品質\n    \"SNR\":        SD_SNR,         //LTEの信号ノイズ比\n    \"SensorType\": SD_SensorType,  //超音波センサーの最大測定距離(0:5m/1:10m)\n    \"Retry\":      SD_Retry,       //超音波センサーの測定リトライ回数\n    \"Distance\": reliable_avg_distance_to_water, //超音波センサーの測定平均値\n    \"DistanceMedian\": median_val,               //超音波センサーの測定中央値\n    \"DistanceValid\": reliable_distances_count,  //超音波センサーがエラーを出力しなかったデータの数\n    \"DistanceReliable\": valid_distances.length, //超音波センサーの測定値で中央値から一定値以上離れなかったデータの数\n    \"WaterLevel\" : WaterLevel,     //水位\n    \"AllHeightNo1\": AllHeight_No1, //センサー面から川底までの高さ 1号機\n    \"AllHeightNo2\": AllHeight_No2, //センサー面から川底までの高さ 2号機\n    \"AllHeightNo3\": AllHeight_No3, //センサー面から川底までの高さ 3号機\n    \"AllHeightNo4\": AllHeight_No4, //センサー面から川底までの高さ 4号機\n    \"AllHeightNo5\": AllHeight_No5, //センサー面から川底までの高さ 5号機\n    \"AllHeightNo6\": AllHeight_No6, //センサー面から川底までの高さ 6号機\n    \"AllHeightNo7\": AllHeight_No7, //センサー面から川底までの高さ 7号機\n    \"ICCID_No1\":    ICCID_No1,     //ICCID 1号機\n    \"ICCID_No2\":    ICCID_No2,     //ICCID 2号機\n    \"ICCID_No3\":    ICCID_No3,     //ICCID 3号機\n    \"ICCID_No4\":    ICCID_No4,     //ICCID 4号機\n    \"ICCID_No5\":    ICCID_No5,     //ICCID 5号機\n    \"ICCID_No6\":    ICCID_No6,     //ICCID 6号機\n    \"ICCID_No7\":    ICCID_No7      //ICCID 7号機\n}\n\n//NULLのフィールドを削除\nif (msg.payload.Distance == null) {\n    delete msg.payload.Distance;\n}\n\nif (msg.payload.WaterLevel == null) {\n    delete msg.payload.WaterLevel;\n}\n\n//LTEステータスエラーでフィールド削除\nif (msg.payload.ES < 5) {\n    delete msg.payload.RSRP;\n    delete msg.payload.RSRQ;\n    delete msg.payload.SNR;\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 360,
+        "wires": [
+            [
+                "c5f6f7f8626ef664",
+                "abbd691b43317a66"
+            ]
+        ]
+    }
+]

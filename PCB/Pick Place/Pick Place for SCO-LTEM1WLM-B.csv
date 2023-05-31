@@ -1,0 +1,40 @@
+Altium Designer Pick and Place Locations
+D:\Dropbox\Development\Project\1602_SAKURA\pcb\SCO-LTEM1WLM-B\Project Outputs for 1602-SB1-EVB1-B\Pick Place\Pick Place for SCO-LTEM1WLM-B.csv
+
+========================================================================================================================
+File Design Information:
+
+Date:       08/04/23
+Time:       14:37
+Revision:   Not in VersionControl
+Variant:    No variations
+Units used: mm
+
+"Designator","Comment","Layer","Footprint","Center-X(mm)","Center-Y(mm)","Rotation","Description"
+"SW2","KSD42","TopLayer","SWITCH_KSD42","133.9500","87.1250","0","Dip Switch SPST 4 Position"
+"U2","AE-TPS63802","TopLayer","MODULE_AE-TPS63802","29.3150","84.3200","90",""
+"U1","SCM-LTEM1NRF-B","TopLayer","MODULE_SCM-LTEM1NRF-B","108.6250","86.8300","270","SCM-LTEM1NRF-B"
+"SW1","SKHHAJA010","TopLayer","Switch_TVDP01-G73AB","41.7500","94.2750","0","SWITCH TACTILE 0.05A 12V"
+"R9","1M","TopLayer","R-METRIC-1608","119.2250","14.1250","90","Rsisiter 2pin"
+"R8","23k","TopLayer","R-METRIC-1608","113.2000","14.4000","270","Rsisiter 2pin"
+"R7","1M","TopLayer","R-METRIC-1608","115.3250","10.5000","270","Rsisiter 2pin"
+"R4","100k","TopLayer","R-METRIC-1608","125.2750","4.3250","90","Rsisiter 2pin"
+"R3","100k","TopLayer","R-METRIC-1608","126.6000","4.3250","90","Rsisiter 2pin"
+"R6","51k","TopLayer","R-METRIC-1608","106.9250","73.0500","90","Rsisiter 2pin"
+"R2","1M","TopLayer","R-METRIC-1608","110.6500","68.2750","90","Rsisiter 2pin"
+"R5","27k","TopLayer","R-METRIC-1608","108.4500","73.0500","270","Rsisiter 2pin"
+"R1","1M","TopLayer","R-METRIC-1608","105.0250","69.1250","90","Rsisiter 2pin"
+"Q1","PMGD290UCEAX","TopLayer","FET_PMGD290UCEAX","107.7920","69.0250","180","Mosfet Array N and P-Channel 20V 725mA, 500mA 280mW Surface Mount 6-TSSOP"
+"IC2","BD2242G-GTR","TopLayer","IC_BD2242G-GTR","116.0506","13.9150","180","Power Switch/Driver 1:1 N-Channel 1.7A 6-SSOP"
+"IC1","S-5851AAA-M6T1U","TopLayer","IC_S-5851AAA-M6T1U","131.2250","3.8750","180","TEMP SENSOR"
+"F1","MFU0603FF00500P100","TopLayer","Fuse_MFU0603FF00500P100","17.4000","85.2500","0","FUSE BOARD MNT 500MA 32VDC 0603"
+"CN1","B02B-PASK","TopLayer","Connector_B02B-PASK","16.7500","90.5750","270","Connector Header Through Hole 2 position 0.079" (2.00mm)"
+"CN4","FH11-2x5SG","TopLayer","CONNECTOR_FH11-2X5SG","50.4251","87.5000","180","Connector 10 position 0.050" (1.27mm)"
+"CN3","BH-20SG","TopLayer","Connector_BH-20SG","73.3150","87.6800","180","Connector 20 position"
+"CN2","B7B-XH-A(LF)(SN)","TopLayer","Connector_B7B-XH-A(LF)(SN)","112.7000","4.8000","180","CONN HEADER XH TOP 7POS 2.5MM"
+"CN5","961104-6404-AR","TopLayer","Connector_961104-6404-AR","135.6250","7.9250","270","4 Positions Header, Unshrouded Connector 0.100" (2.54mm) Through Hole Gold"
+"C2","150u/16V","TopLayer","Capacitor_UCW1C151MCL1GS","106.2500","12.8000","180","150É F 16V Aluminum Electrolytic Capacitors Radial, Can - SMD 7000 Hrs @ 105ÅãC"
+"C3","0.1u/50V","TopLayer","C-METRIC-1608","111.8500","11.4250","90","Capacitor (non-polar) 2pin"
+"C5","0.1u/50V","TopLayer","C-METRIC-1608","117.0500","16.5500","180","Capacitor (non-polar) 2pin"
+"C1","0.1u/50V","TopLayer","C-METRIC-1608","127.9250","4.3250","90","Capacitor (non-polar) 2pin"
+"C4","2200p/50V","TopLayer","C-METRIC-1608","109.9750","73.0500","90","Capacitor (non-polar) 2pin"
