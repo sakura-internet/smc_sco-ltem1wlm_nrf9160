@@ -303,10 +303,10 @@ static void uart0_set_enable(bool enable)
 	pm_device_action_run(uart_dev, enable ? PM_DEVICE_ACTION_RESUME : PM_DEVICE_ACTION_SUSPEND);
 }
 
-//ウォッチドックタイマーカウンタ(初期化対象外変数の定義)
+//ウォッチドッグタイマーカウンタ(初期化対象外変数の定義)
 volatile uint8_t WDT_call_count __attribute__((section(".noinit.test_wdt")));
 
-//ウォッチドックタイマーコールバック
+//ウォッチドッグタイマーコールバック
 static void wdt_cb(const struct device *wdt_dev, int channel_id)
 {
 	ARG_UNUSED(wdt_dev);
@@ -314,7 +314,7 @@ static void wdt_cb(const struct device *wdt_dev, int channel_id)
 	WDT_call_count++; //WDT鳴いたら+1
 }
 
-//ウォッチドックタイマー初期化
+//ウォッチドッグタイマー初期化
 static int wdt_init(void)
 {
 	int err;
@@ -347,9 +347,52 @@ static int wdt_init(void)
 	return 0;
 }
 
+//UDPサーバ初期化
+static int server_init(void)
+{
+	struct sockaddr_in *server4 = ((struct sockaddr_in *)&host_addr);
+	printk("server_init start\n");
+	server4->sin_family = AF_INET;
+	server4->sin_port = htons(CONFIG_UDP_SERVER_PORT);
+
+	inet_pton(AF_INET, CONFIG_UDP_SERVER_ADDRESS_STATIC, &server4->sin_addr);
+
+	return 0;
+}
+
+//UDP切断
+static void server_disconnect(void)
+{
+	printk("UDP server disconnect\n");
+	(void)close(client_fd);
+}
+
+//UDP接続
+static int server_connect(void)
+{
+	int err;
+
+	printk("server connect start\n");
+	client_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); //ソケット
+	if (client_fd < 0) {
+		printk("Failed to create UDP socket: %d\n", errno);
+		err = -errno;
+		server_disconnect();
+		return err;
+	}
+
+	err = connect(client_fd, (struct sockaddr *)&host_addr, sizeof(struct sockaddr_in)); //指定IPに接続
+	if (err < 0) {
+		printk("Connect failed : %d\n", errno);
+		server_disconnect();
+		return err;
+	}
+
+	return 0;
+}
+
 //UDPデータ送信ファンクション
 uint32_t countUDPsend = 1;
-uint8_t UDP_error_count = 0;
 static void server_transmission_work_fn(struct k_work *work)
 {
 	int err;
@@ -380,11 +423,10 @@ static void server_transmission_work_fn(struct k_work *work)
 
 	uart0_set_enable(true); //UART有効
 
-	//printk("VIN VOLTAGE: %dmV\n",measure_batt_mv());
-	printk("SW0=%d\n",gpio_pin_get_dt(&SW0));
-	printk("SW1=%d\n",gpio_pin_get_dt(&SW1));
-	printk("SW2=%d\n",gpio_pin_get_dt(&SW2));
-	printk("SW3=%d\n",gpio_pin_get_dt(&SW3));
+	printk("\n\n************************************************\n");
+	printk("Start of measurement and transmission. No.%d\n", countUDPsend);
+
+	printk("DIP-SW status [%d:%d:%d:%d]\n",gpio_pin_get_dt(&SW0),gpio_pin_get_dt(&SW1),gpio_pin_get_dt(&SW2),gpio_pin_get_dt(&SW3));
 
 	//DIPスイッチ 2番 センサータイプ
 	// ON：ショートタイプMB7388(10m)
@@ -419,11 +461,13 @@ static void server_transmission_work_fn(struct k_work *work)
 	countRetry = 0;
 	do {
 		printk("Ultrasonic Range Finder Sensing Try.%d\n", countRetry + 1);
+		//配列初期化
 		for(a = 0; a < 13; a++) {
 			for (i = 0; i < 20; i++) {
 				data_wls[a][i] = 0;
 			}
 		}
+
 		//超音波センサーデータ取得
 		for(a = 0; a < 13; a++) {
 			i = 0;
@@ -442,14 +486,14 @@ static void server_transmission_work_fn(struct k_work *work)
 					count++;     //UARTのデータが空だった場合はカウントアップ
 					k_msleep(1); //1msスリープ
 				}
-				//タイムアウト判定 5秒以内にUART受信できなかった場合はタイムアウト
-				if (count > 5000) {
+				//タイムアウト判定 1秒以内にUART受信できなかった場合はタイムアウト
+				if (count > 1000) {
 					printk("*** Range Finder ERROR\n");
 					break;
 				}
 			}
 			//タイムアウト時は配列に-999を書いてブレイク
-			if (count > 5000) {
+			if (count > 1000) {
 				for (a = 0; a < 13; a++) {
 					sprintf(data_wls[a], "-999");
 				}
@@ -458,8 +502,8 @@ static void server_transmission_work_fn(struct k_work *work)
 		}
 
 		//デバッグ用
-		for (a = 0; a < 13; a++) {
-			printk("UART [%.2d] %s\n", a, data_wls[a]);
+		for (a = 8; a < 13; a++) {
+			printk("DATA [%02d] %.4s\n", a, data_wls[a]);
 		}
 
 		//センサーがロングタイプMB7051(10m)の場合は値を10倍してcmからmmにする
@@ -482,13 +526,13 @@ static void server_transmission_work_fn(struct k_work *work)
 			for (a = 8; a < 13; a++) {
 				//5mセンサー
 				if (setSensor10Meter == 0 && (atoi(data_wls[a]) < 300 || atoi(data_wls[a]) > 4999)) {
-					printk("Sensing error No[%d] = %s\n", a-7, data_wls[a]);
-					sprintf(data_wls[a], "-1"); //5mセンサーで300mm以下と4999mm以上はエラー(検出失敗時は5000mm)
+					printk("Sensing ERROR [%d] = %s\n", a-7, data_wls[a]);
+					sprintf(data_wls[a], "-1"); //5mセンサーで300mm未満と4999mm以上はエラー(検出失敗時は5000mm)
 				}
 				//10mセンサー
 				if (setSensor10Meter == 1 && (atoi(data_wls[a]) < 500 || atoi(data_wls[a]) > 9998)) {
-					printk("Sensing error No[%d] = %s\n", a-7, data_wls[a]);
-					sprintf(data_wls[a], "-1"); //10mセンサーで500mm以下と9998mm以上はエラー(検出失敗時は9999mm)
+					printk("Sensing ERROR [%d] = %s\n", a-7, data_wls[a]);
+					sprintf(data_wls[a], "-1"); //10mセンサーで500mm未満と9998mm以上はエラー(検出失敗時は9999mm)
 				}
 			}
 		}
@@ -509,8 +553,9 @@ static void server_transmission_work_fn(struct k_work *work)
 				err++;
 			}
 		}
-
-		printk("error count %d\n", err);
+		
+		//エラー判定表示
+		printk("Sensing error count %d\n", err);
 		if (err >= 3) {
 			printk("Sensing ERROR\n");
 		} else {
@@ -524,6 +569,7 @@ static void server_transmission_work_fn(struct k_work *work)
 	gpio_pin_set_dt(&WS_POWER, 0); //WS_POWER
 
 	//XMONITOR情報取得
+	//文字列例 [AT%XMONITOR=5,"KDDI","KDDI","44051","185C",7,18,"008AAA5C",316,5900,44,22,"1010","00000000","00100111","01011111"]
 	nrf_modem_at_scanf("AT%XMONITOR","%%XMONITOR: %120[ ,-\"a-zA-Z0-9]", ResponseBuffer);
 	printk("AT%%XMONITOR=%s\n",ResponseBuffer);
 	ResponsePt = strtok(ResponseBuffer,",");
@@ -537,16 +583,17 @@ static void server_transmission_work_fn(struct k_work *work)
 		a++;
 		if(a >= 17) {break;}
 	}
-	sprintf(request_plmn   , "%.7s" , ResponseData[3]); // PLMN "44020"
-	sprintf(request_tac    , "%.6s" , ResponseData[4]); // TACコード "1010"
-	sprintf(request_band   , "%.2s" , ResponseData[6]); // バンド番号 1
-	sprintf(request_cell_id, "%.10s", ResponseData[7]); // CELL ID "00E1C13B"
+	sprintf(request_plmn   , "%.7s" , ResponseData[3]); // PLMN 例["44020"]
+	sprintf(request_tac    , "%.6s" , ResponseData[4]); // TACコード 例["185C"]
+	sprintf(request_band   , "%.2s" , ResponseData[6]); // バンド番号 例[18]
+	sprintf(request_cell_id, "%.10s", ResponseData[7]); // CELL ID 例["008AAA5C"]
 	printk("plmn   : %s\n", request_plmn   );
 	printk("tac    : %s\n", request_tac    );
 	printk("band   : %s\n", request_band   );
 	printk("cell_id: %s\n", request_cell_id);
 
 	//CONEVAL情報取得
+	//文字列例 [AT%CONEVAL=0,0,6,42,3,17,"008AAA5C","44051",331,5900,18,0,0,4,2,8,117]
 	nrf_modem_at_scanf("AT%CONEVAL","%%CONEVAL: %120[ ,-\"a-zA-Z0-9]", ResponseBuffer);
 	printk("AT%%CONEVAL=%s\n",ResponseBuffer);
 	ResponsePt = strtok(ResponseBuffer,",");
@@ -567,7 +614,7 @@ static void server_transmission_work_fn(struct k_work *work)
 		sprintf(request_rsrq, "%.3s", ResponseData[4]); // 信号受信品質 -30
 		sprintf(request_snr , "%.3s", ResponseData[5]); // 信号ノイズ比 49
 	} else {
-		printk("AT%%CONEVAL ERROR\n");
+		printk("AT%%CONEVAL ERROR\n");// ステータス取得失敗
 		sprintf(request_es  , "0");   // 電力効率 
 		sprintf(request_rsrp, "255"); // 信号受信電力
 		sprintf(request_rsrq, "255"); // 信号受信品質
@@ -620,16 +667,29 @@ static void server_transmission_work_fn(struct k_work *work)
 	printk("IP address %s, port number %d\n", CONFIG_UDP_SERVER_ADDRESS_STATIC, CONFIG_UDP_SERVER_PORT);
 	printk("WDT call count %d\n", WDT_call_count);
 	err = send(client_fd, buffer, strlen(buffer), 0); //UDP送信実行
+
+	//UDP送信のデッドロックバグ回避
 	if (err < 0) {
-		UDP_error_count++; //UDPエラーカウントアップ
 		printk("Failed to transmit UDP packet, %d\n", errno);
-		printk("UDP error count %d\n", UDP_error_count);
-		if (UDP_error_count >= 3) {
-			wdt_feed(wdt_dev, wdt_main_channel); //WDTリセット
-			NVIC_SystemReset(); //UDP送信エラー3回以上でシステムリセット
+
+		//再送信を行う。それでもエラーが出た場合はシステムリセットする
+		printk("Resend UDP packet\n");
+		server_disconnect();    //サーバ切断
+		err = server_connect(); //サーバ接続
+		if (err) {
+			printk("Not able to connect to UDP server\n"); //UDPサーバ接続エラー
+		} else {
+			printk("UDP server connected\n"); //UDPサーバ接続成功
+		}
+		err = send(client_fd, buffer, strlen(buffer), 0); //UDP送信実行
+		if (err < 0) {
+			printk("Failed to transmit UDP packet, %d\n", errno); //UDP送信エラー
+			NVIC_SystemReset(); //システムリセット
+		} else {
+			printk("Resend Success UDP packet, %d\n", errno); //UDP再送信成功
 		}
 	} else {
-		UDP_error_count = 0; //UDPエラーカウントリセット
+		printk("Success to transmit UDP packet, %d\n", errno);
 	}
 
 	//COPS情報取得 文字列例[+COPS: 0,2,"44020",7]
@@ -640,12 +700,14 @@ static void server_transmission_work_fn(struct k_work *work)
 	{
 		printk("CONNECTION ERROR\n");
 		NVIC_SystemReset(); //システムリセット
-	} else {
-		wdt_feed(wdt_dev, wdt_main_channel); //WDTリセット
-		WDT_call_count = 0;
 	}
 
+	//送信完了でWDTリセット
+	wdt_feed(wdt_dev, wdt_main_channel); //WDTリセット
+	WDT_call_count = 0;
+
 	countUDPsend++; //連続送信回数カウント
+	printk("************************************************\n\n");
 	uart0_set_enable(false); //UART停止
 	k_work_schedule(&server_transmission_work, K_SECONDS(CONFIG_UDP_DATA_UPLOAD_FREQUENCY_SECONDS)); //次のUDP送信をスケジュールに追加
 }
@@ -730,48 +792,8 @@ static void modem_init(void)
 
 }
 
-//UDP切断
-static void server_disconnect(void)
-{
-	(void)close(client_fd);
-}
-
-//UDPサーバ初期化
-static int server_init(void)
-{
-	struct sockaddr_in *server4 = ((struct sockaddr_in *)&host_addr);
-	printk("server_init start\n");
-	server4->sin_family = AF_INET;
-	server4->sin_port = htons(CONFIG_UDP_SERVER_PORT);
-
-	inet_pton(AF_INET, CONFIG_UDP_SERVER_ADDRESS_STATIC, &server4->sin_addr);
-
-	return 0;
-}
-
-//UDP接続
-static int server_connect(void)
-{
-	int err;
-
-	printk("server_connect start\n");
-	client_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP); //ソケット
-	if (client_fd < 0) {
-		printk("Failed to create UDP socket: %d\n", errno);
-		err = -errno;
-		server_disconnect();
-		return err;
-	}
-
-	err = connect(client_fd, (struct sockaddr *)&host_addr, sizeof(struct sockaddr_in)); //指定IPに接続
-	if (err < 0) {
-		printk("Connect failed : %d\n", errno);
-		server_disconnect();
-		return err;
-	}
-
-	return 0;
-}
+volatile uint8_t first_boot __attribute__((section(".noinit.boot"))); //LTE接続先(初期化対象外変数の定義)
+volatile uint8_t startup_PLMN __attribute__((section(".noinit.plmn"))); //LTE接続先(初期化対象外変数の定義)
 
 //LTE接続手続きATコマンド群
 static int modem_connect(void)
@@ -816,19 +838,42 @@ static int modem_connect(void)
 	}
 
 	//接続先キャリア設定 PLMNセット
+	//初回起動時はDIPスイッチに従う (first_boot != 0xAA)
+	//2回目以降は前回の接続キャリアの次のキャリアをセットする
+	//ソフトバンク→ドコモ→KDDIの順に試行する
 	printk("\nPLMN setting\n");
-	
-	if(gpio_pin_get_dt(&SW0) == 0 && gpio_pin_get_dt(&SW1) == 0) {
-		sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44020\""); //ソフトバンク
+	if (first_boot != 0xAA) {
+		first_boot = 0xAA;
+		//初回起動 (DIPスイッチでセット)
+		if(gpio_pin_get_dt(&SW0) == 0 && gpio_pin_get_dt(&SW1) == 0) {
+			startup_PLMN = 0; //ソフトバンク
+		}
+		else if (gpio_pin_get_dt(&SW0) == 1 && gpio_pin_get_dt(&SW1) == 0) {
+			startup_PLMN = 1; //ドコモ
+		}
+		else if (gpio_pin_get_dt(&SW0) == 0 && gpio_pin_get_dt(&SW1) == 1) {
+			startup_PLMN = 2; //KDDI
+		}
+		else {
+			startup_PLMN = 0; //ソフトバンク
+		}
+	} else {
+		//2回目以降 (再接続試行5回目で次のPLMNに移る)
+		if (WDT_call_count >= 5) {
+			WDT_call_count = 0;
+			if (startup_PLMN >= 2) {
+				startup_PLMN = 0;
+			} else {
+				startup_PLMN++;
+			}
+		}
 	}
-	else if (gpio_pin_get_dt(&SW0) == 1 && gpio_pin_get_dt(&SW1) == 0) {
-		sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44010\""); //ドコモ
-	}
-	else if (gpio_pin_get_dt(&SW0) == 0 && gpio_pin_get_dt(&SW1) == 1) {
-		sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44051\""); //KDDI
-	}
-	else {
-		sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44020\"");
+	//PLMNの設定
+	switch (startup_PLMN) {
+		case 0: sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44020\""); printk("carrier select SoftBank\n");break;
+		case 1: sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44010\""); printk("carrier select docomo\n");break;
+		case 2: sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44051\""); printk("carrier select KDDI\n");break;
+		default:sprintf(setPLMN, "AT+COPS=1,2,%s\n","\"44020\""); printk("carrier select SoftBank\n");break;
 	}
 
 	printk("%s", setPLMN);
@@ -866,6 +911,9 @@ static int modem_connect(void)
 	}
 
 	//PSM設定
+	//Enable power saving mode
+	//Requested_Periodic-TAU-ext 1hour x 6 = 6hour
+	//Requested_Active-Time 2sec x 0 = 0sec
 	printk("\nPower saving mode setting\n");
 	printk("AT+CPSMS=1,\"\",\"\",\"00100110\",\"00000000\"\n");
 	err = nrf_modem_at_printf("AT+CPSMS=1,\"\",\"\",\"00100110\",\"00000000\"");
@@ -912,32 +960,39 @@ void main(void)
 		printk("\n**** UART device not ready ****\n");
 	}
 
-	printk("\n\n------ LTE Water Level Gauge v1.0.0 ------\n");
+	printk("\n\n------ LTE Water Level Gauge v1.1.0 ------\n");
 	printk(    "--- Development is SAKURA internet Inc.---\n");
 
 	wdt_init(); //WDT初期化
 
-	//ウォッチドックが鳴いた回数で接続試行にウェイトをかける
+	//ウォッチドッグが鳴いた回数で接続試行にウェイトをかける
+	printk("First boot %d\n", first_boot);
 	printk("WDT count %d\n", WDT_call_count);
-	if (WDT_call_count > 4) {
-		WDT_call_count = 0;
+	if (first_boot != 0xAA) {
+		WDT_call_count = 0; //初回起動時リセット
+	}
+	if (WDT_call_count >= 6) {
+		WDT_call_count = 0; //6以上がセットされたらリセット
 	}
 	switch(WDT_call_count){
-		case 0: wdtSleepMin = 0; printk("none sleep\n");break;
-		case 1: wdtSleepMin = 1; printk("sleep %dmin\n",wdtSleepMin); break; //1分
-		case 2: wdtSleepMin = 2; printk("sleep %dmin\n",wdtSleepMin); break; //2分
-		case 3: wdtSleepMin = 4; printk("sleep %dmin\n",wdtSleepMin); break; //4分
-		case 4: wdtSleepMin = 8; printk("sleep %dmin\n",wdtSleepMin); break; //8分
-		default:wdtSleepMin = 0; break;
+		case 0: wdtSleepMin = 0; printk("none sleep\n");break; //初回接続
+		case 1: wdtSleepMin = 1; printk("sleep %dmin\n",wdtSleepMin); break; //1分 (再接続1回目)
+		case 2: wdtSleepMin = 2; printk("sleep %dmin\n",wdtSleepMin); break; //2分 (再接続2回目)
+		case 3: wdtSleepMin = 4; printk("sleep %dmin\n",wdtSleepMin); break; //4分 (再接続3回目)
+		case 4: wdtSleepMin = 8; printk("sleep %dmin\n",wdtSleepMin); break; //8分 (再接続4回目)
+		default:wdtSleepMin = 0; break; //PLMNを変更 (再接続5回目)
 	}
 	for (countSleepMin = wdtSleepMin; countSleepMin > 0; countSleepMin--) {
 		if (countSleepMin > 10) {
 			break; //10分を超える値がセットされていた場合はループを抜ける
 		}
-		wdt_feed(wdt_dev, wdt_main_channel);//WDTカウンタリセット
+		wdt_feed(wdt_dev, wdt_main_channel);//WDTリセット
+		uart0_set_enable(true); //UART有効
 		printk("%d minute sleep remaining\n", countSleepMin);
+		uart0_set_enable(false); //UART停止
 		k_sleep(K_SECONDS(60)); //1分スリープ
 	}
+	uart0_set_enable(true); //UART有効
 
 	gpio_init();     //GPIO初期化
 	adc_init();      //ADC初期化
@@ -946,7 +1001,7 @@ void main(void)
 	modem_init();    //LTEモデム初期化
 	modem_connect(); //LTE接続用ATコマンド発行
 
-	err = k_sem_take(&lte_connected, K_SECONDS(30)); //指定時間接続完了待ち
+	err = k_sem_take(&lte_connected, K_SECONDS(35)); //指定時間接続完了待ち
 	if (err == -EAGAIN) 
 	{
 		printk("\n*** CONNECTION TIMEOUT!!\n");
@@ -954,21 +1009,19 @@ void main(void)
 		NVIC_SystemReset(); //接続タイムアウトでシステムリセット
 	}
 
-	wdt_feed(wdt_dev, wdt_main_channel);//WDTカウンタリセット
+	wdt_feed(wdt_dev, wdt_main_channel);//WDTリセット
 	WDT_call_count = 0;
 
 	err = server_init(); //UDPサーバ初期化
 	printk("server_init status %d\n",err);
 	if (err) {
 		printk("Not able to initialize UDP server connection\n");
-		return;
 	}
 
 	err = server_connect(); //UDPコネクト
 	printk("server_connect status %d\n",err);
 	if (err) {
 		printk("Not able to connect to UDP server\n");
-		return;
 	}
 
 	//UDP定期送信スレッド実行
