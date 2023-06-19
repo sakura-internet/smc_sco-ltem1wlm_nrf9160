@@ -397,8 +397,7 @@ uint32_t countUDPsend = 1;
 static void server_transmission_work_fn(struct k_work *work)
 {
 	int err;
-	char ResponseBuffer[128] = {0};
-	char buffer[256] = {"\0"};
+	static char buffer[256] = {"\0"};
 	char request_iccid[32] = {0};
 	char request_cclk[21] = {0};
 	char request_cops[15] = {0};
@@ -565,9 +564,10 @@ static void server_transmission_work_fn(struct k_work *work)
 
 	//XMONITORî•ñæ“¾
 	//•¶š—ñ—á [AT%XMONITOR=5,"KDDI","KDDI","44051","185C",7,18,"008AAA5C",316,5900,44,22,"1010","00000000","00100111","01011111"]
-	nrf_modem_at_scanf("AT%XMONITOR","%%XMONITOR: %120[ ,-\"a-zA-Z0-9]", ResponseBuffer);
-	printk("AT%%XMONITOR=%s\n",ResponseBuffer);
-	ResponsePt = strtok(ResponseBuffer,",");
+	memset(buffer, '\0', sizeof(buffer));
+	nrf_modem_at_scanf("AT%XMONITOR","%%XMONITOR: %120[ ,-\"a-zA-Z0-9]", buffer);
+	printk("AT%%XMONITOR=%s\n",buffer);
+	ResponsePt = strtok(buffer,",");
 	sprintf(ResponseData[0], "%s", ResponsePt);
 	a = 1;
 	while (ResponsePt != NULL)
@@ -598,9 +598,10 @@ static void server_transmission_work_fn(struct k_work *work)
 
 	//CONEVALî•ñæ“¾
 	//•¶š—ñ—á [AT%CONEVAL=0,0,6,42,3,17,"008AAA5C","44051",331,5900,18,0,0,4,2,8,117]
-	nrf_modem_at_scanf("AT%CONEVAL","%%CONEVAL: %120[ ,-\"a-zA-Z0-9]", ResponseBuffer);
-	printk("AT%%CONEVAL=%s\n",ResponseBuffer);
-	ResponsePt = strtok(ResponseBuffer,",");
+	memset(buffer, '\0', sizeof(buffer));
+	nrf_modem_at_scanf("AT%CONEVAL","%%CONEVAL: %120[ ,-\"a-zA-Z0-9]", buffer);
+	printk("AT%%CONEVAL=%s\n",buffer);
+	ResponsePt = strtok(buffer,",");
 	sprintf(ResponseData[0], "%s", ResponsePt);
 	a = 1;
 	while (ResponsePt != NULL)
@@ -647,6 +648,7 @@ static void server_transmission_work_fn(struct k_work *work)
 	float value_temp = measure_temp();        //‰·“xæ“¾
 
 	//‘—M•¶š—ñ¶¬
+	memset(buffer, '\0', sizeof(buffer));
 	sprintf(buffer, "%.20s,%.19s,%04d,%+06.2f,%.4s,%.4s,%.4s,%.4s,%.4s,%010d,%.2s,%.7s,%.6s,%.10s,%.1s,%.3s,%.3s,%.3s,%1d,%02d",
 	                request_cclk,     // (20•¶š§ŒÀ)
 	                request_iccid,    //ICCID (19•¶š§ŒÀ)
