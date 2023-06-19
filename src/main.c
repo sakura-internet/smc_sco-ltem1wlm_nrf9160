@@ -28,6 +28,7 @@
 #include <modem/lte_lc.h>
 
 #define UDP_IP_HEADER_SIZE 28
+#define UART_TIMEOUT_MSEC 1000
 
 static const struct device *uart_dev = DEVICE_DT_GET(DT_NODELABEL(uart0)); //UART
 
@@ -401,7 +402,7 @@ static void server_transmission_work_fn(struct k_work *work)
 	char request_iccid[32] = {0};
 	char request_cclk[21] = {0};
 	char request_cops[15] = {0};
-	int count = 0;
+	int countTimeout = 0;
 	char rx_byte;
 	char data_wls[13][20] = {{0},{0}};
 	int countRetry = 0;
@@ -453,12 +454,10 @@ static void server_transmission_work_fn(struct k_work *work)
 		setSensor10Meter = 1; //10mセンサー
 	}
 
-	//超音波センサー電源ON
-	gpio_pin_set_dt(&WS_POWER, 1); //WS_POWER
-	gpio_pin_set_dt(&WA_START, 1); //WS_STAR
+	//超音波センサーデータ情報取得処理
+	gpio_pin_set_dt(&WS_POWER, 1); //センサー電源ON
+	gpio_pin_set_dt(&WA_START, 1); //センサー計測スタート
 	k_msleep(170); //起動メッセージ流れ待ち
-
-	countRetry = 0;
 	do {
 		printk("Ultrasonic Range Finder Sensing Try.%d\n", countRetry + 1);
 		//配列初期化
@@ -467,46 +466,47 @@ static void server_transmission_work_fn(struct k_work *work)
 				data_wls[a][i] = 0;
 			}
 		}
-
-		//超音波センサーデータ取得
+		//UART受信処理
 		for(a = 0; a < 13; a++) {
 			i = 0;
 			rx_byte = 0;
-			count = 0;
+			countTimeout = 0;
 			//最終受信文字が改行コードだった場合は次の配列(行)に移る
 			while (rx_byte != 13) {
 				err = uart_poll_in(uart_dev, &rx_byte); //UART受信データ1文字読み込み。空だった場合は待ち。
 				if (err != -1) {
-					count = 0;
+					countTimeout = 0;
 					if (rx_byte != 'R' && rx_byte != 13) {
 						data_wls[a][i] = rx_byte; //UART受信データが'R'もしくは改行コードでなければ1文字格納
 						i++;
 					}
 				} else {
-					count++;     //UARTのデータが空だった場合はカウントアップ
+					countTimeout++;     //UARTのデータが空だった場合はカウントアップ
 					k_msleep(1); //1msスリープ
 				}
 				//タイムアウト判定 1秒以内にUART受信できなかった場合はタイムアウト
-				if (count > 1000) {
-					printk("*** Range Finder ERROR\n");
+				if (countTimeout > UART_TIMEOUT_MSEC) {
+					printk("*** Range Finder Timeout\n");
 					break;
 				}
 			}
 			//タイムアウト時は配列に-999を書いてブレイク
-			if (count > 1000) {
+			if (countTimeout > UART_TIMEOUT_MSEC) {
 				for (a = 0; a < 13; a++) {
 					sprintf(data_wls[a], "-999");
 				}
 				break;
 			}
 		}
-
+		//タイムアウト時はブレイク
+		if (countTimeout > UART_TIMEOUT_MSEC) {
+			break;
+		}
 		//デバッグ用
 		for (a = 8; a < 13; a++) {
 			printk("DATA [%02d] %.4s\n", a, data_wls[a]);
 		}
-
-		//センサーがロングタイプMB7051(10m)の場合は値を10倍してcmからmmにする
+		//センサーがロングタイプMB7051(10m)の場合は値を10倍してcmからmmにする処理
 		if (setMB7051 == 1 && atoi(data_wls[0]) != -999) {
 			for (a = 8; a < 13; a++) {
 				if (atoi(data_wls[a]) > 999) {
@@ -517,11 +517,11 @@ static void server_transmission_work_fn(struct k_work *work)
 				//printk("MB7051 String %s\n", data_wls[a]);
 			}
 		}
-
 		//計測値エラー判定
-		//8,9,10,11,12を計測値として採用
-		//5mセンサーのレンジ 300～4999mm
-		//10mセンサーのレンジ 500～9998mm
+		//エラーの場合は-1をセットする
+		//配列の8,9,10,11,12を計測値として採用
+		//5mセンサーのレンジ 300～4999mm (反射消失の場合は5000mm)
+		//10mセンサーのレンジ 500～9998mm (反射消失の場合は9999mm)
 		if (atoi(data_wls[0]) != -999) {
 			for (a = 8; a < 13; a++) {
 				//5mセンサー
@@ -536,15 +536,6 @@ static void server_transmission_work_fn(struct k_work *work)
 				}
 			}
 		}
-
-		countRetry++; //リトライカウンター +1
-
-		//10回以上失敗したらあきらめる
-		if (countRetry > 9) {
-			countRetry = 11;
-			break;
-		}
-
 		//計測値エラー数カウント
 		err = 0;
 		for (a = 8; a < 13; a++) {
@@ -553,7 +544,6 @@ static void server_transmission_work_fn(struct k_work *work)
 				err++;
 			}
 		}
-		
 		//エラー判定表示
 		printk("Sensing error count %d\n", err);
 		if (err >= 3) {
@@ -561,12 +551,17 @@ static void server_transmission_work_fn(struct k_work *work)
 		} else {
 			printk("Sensing OK\n");
 		}
-
+		countRetry++; //リトライカウンター +1
+		//リトライ10回目で終了する
+		if (countRetry >= 10) {
+			countRetry = 11;
+			break;
+		}
 	} while (err >= 3); //3個以上のエラーでリトライ。最低3個の計測値を得る。
 
 	//超音波センサー電源OFF
-	gpio_pin_set_dt(&WA_START, 0); //WS_STAR
-	gpio_pin_set_dt(&WS_POWER, 0); //WS_POWER
+	gpio_pin_set_dt(&WA_START, 0); //センサー計測停止
+	gpio_pin_set_dt(&WS_POWER, 0); //センサー電源OFF
 
 	//XMONITOR情報取得
 	//文字列例 [AT%XMONITOR=5,"KDDI","KDDI","44051","185C",7,18,"008AAA5C",316,5900,44,22,"1010","00000000","00100111","01011111"]
@@ -583,10 +578,19 @@ static void server_transmission_work_fn(struct k_work *work)
 		a++;
 		if(a >= 17) {break;}
 	}
-	sprintf(request_plmn   , "%.7s" , ResponseData[3]); // PLMN 例["44020"]
-	sprintf(request_tac    , "%.6s" , ResponseData[4]); // TACコード 例["185C"]
-	sprintf(request_band   , "%.2s" , ResponseData[6]); // バンド番号 例[18]
-	sprintf(request_cell_id, "%.10s", ResponseData[7]); // CELL ID 例["008AAA5C"]
+	//XMONITOR情報取得成功判定
+	if (strcmp(ResponseData[0],"0") == 5) {
+		sprintf(request_plmn   , "%.7s" , ResponseData[3]); // PLMN 例["44020"]
+		sprintf(request_tac    , "%.6s" , ResponseData[4]); // TACコード 例["185C"]
+		sprintf(request_band   , "%.2s" , ResponseData[6]); // バンド番号 例[18]
+		sprintf(request_cell_id, "%.10s", ResponseData[7]); // CELL ID 例["008AAA5C"]
+	} else {
+		printk("AT%%XMONITOR ERROR\n");            // ステータス取得失敗
+		sprintf(request_plmn   ,   "\"00000\"" );  // PLMN エラー値
+		sprintf(request_tac    ,    "\"0000\"" );  // TACコード エラー値
+		sprintf(request_band   ,           "0" );  // バンド番号 エラー値
+		sprintf(request_cell_id, "\"00000000\"");  // CELL ID エラー値
+	}
 	printk("plmn   : %s\n", request_plmn   );
 	printk("tac    : %s\n", request_tac    );
 	printk("band   : %s\n", request_band   );
@@ -615,10 +619,10 @@ static void server_transmission_work_fn(struct k_work *work)
 		sprintf(request_snr , "%.3s", ResponseData[5]); // 信号ノイズ比 49
 	} else {
 		printk("AT%%CONEVAL ERROR\n");// ステータス取得失敗
-		sprintf(request_es  , "0");   // 電力効率 
-		sprintf(request_rsrp, "255"); // 信号受信電力
-		sprintf(request_rsrq, "255"); // 信号受信品質
-		sprintf(request_snr , "127"); // 信号ノイズ比
+		sprintf(request_es  , "0");   // 電力効率 エラー値
+		sprintf(request_rsrp, "255"); // 信号受信電力 エラー値
+		sprintf(request_rsrq, "255"); // 信号受信品質 エラー値
+		sprintf(request_snr , "127"); // 信号ノイズ比 エラー値
 	}
 	printk("es   : %s\n", request_es  );
 	printk("rsrp : %s\n", request_rsrp);
@@ -639,12 +643,15 @@ static void server_transmission_work_fn(struct k_work *work)
 		sprintf(request_iccid, "-1");
 	}
 
+	int16_t value_battmv = measure_batt_mv(); //電源電圧取得
+	float value_temp = measure_temp();        //温度取得
+
 	//送信文字列生成
 	sprintf(buffer, "%.20s,%.19s,%04d,%+06.2f,%.4s,%.4s,%.4s,%.4s,%.4s,%010d,%.2s,%.7s,%.6s,%.10s,%.1s,%.3s,%.3s,%.3s,%1d,%02d",
 	                request_cclk,     //時刻 (20文字制限)
 	                request_iccid,    //ICCID (19文字制限)
-	                measure_batt_mv(),//電源電圧
-	                measure_temp(),   //温度
+	                value_battmv,     //電源電圧
+	                value_temp,       //温度
 	                data_wls[ 8],     //超音波距離測定1回目 (4文字制限)
 	                data_wls[ 9],     //超音波距離測定2回目 (4文字制限)
 	                data_wls[10],     //超音波距離測定3回目 (4文字制限)
@@ -792,8 +799,8 @@ static void modem_init(void)
 
 }
 
-volatile uint8_t first_boot __attribute__((section(".noinit.boot"))); //LTE接続先(初期化対象外変数の定義)
-volatile uint8_t startup_PLMN __attribute__((section(".noinit.plmn"))); //LTE接続先(初期化対象外変数の定義)
+volatile uint8_t first_boot __attribute__((section(".noinit.boot")));   //初回起動フラグ(初期化対象外変数の定義)
+volatile uint8_t startup_PLMN __attribute__((section(".noinit.plmn"))); //LTE接続先変数(初期化対象外変数の定義)
 
 //LTE接続手続きATコマンド群
 static int modem_connect(void)
